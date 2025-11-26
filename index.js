@@ -2,26 +2,30 @@ const express = require("express");
 const cors = require("cors");
 const { SessionsClient } = require("@google-cloud/dialogflow-cx");
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
 // --- Dialogflow CX configuration for your DesignPatternAgent ---
 const projectId = "designpattern-456617";
 const location  = "global";
 const agentId   = "2f3bf99f-2be1-4f88-8857-dcec1d5b1265";
 
-// ABSOLUTE PATH TO YOUR JSON KEY (Windows style).
-// Make sure this path matches where your file actually is.
-const keyFilePath = "C:\\Users\\nikit\\OneDrive - Georgia Institute of Technology\\designpattern-backend\\designpattern-456617-bef9c3400ad5.json";
+// Use env var in production (Render), file path locally
+let client;
 
-// Log for sanity
-console.log("Using key file:", keyFilePath);
+if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+  // On Render: JSON string in env var
+  console.log("Using credentials from GOOGLE_CLOUD_CREDENTIALS env var");
+  const creds = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+  client = new SessionsClient({
+    credentials: creds,
+  });
+} else {
+  // Local dev: key file on disk
+  const keyFilePath = "C:\\Users\\nikit\\designpattern-456617-bef9c3400ad5.json";
+  console.log("Using local key file:", keyFilePath);
+  client = new SessionsClient({
+    keyFilename: keyFilePath,
+  });
+}
 
-// Create Dialogflow CX SessionsClient using the key file directly
-const client = new SessionsClient({
-  keyFilename: keyFilePath,
-});
 
 app.post("/chat", async (req, res) => {
   try {
