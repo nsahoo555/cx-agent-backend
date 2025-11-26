@@ -1,3 +1,4 @@
 node_modules/
-*.json
 .env
+# (optional) ignore keys by name if you ever put them here again
+designpattern-456617-bef9c3400ad5.json
