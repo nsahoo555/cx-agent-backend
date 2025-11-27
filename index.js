@@ -2,31 +2,34 @@ const express = require("express");
 const cors = require("cors");
 const { SessionsClient } = require("@google-cloud/dialogflow-cx");
 
-// --- Dialogflow CX configuration for your DesignPatternAgent ---
-const projectId = "designpattern-456617";
-const location  = "global";
-const agentId   = "2f3bf99f-2be1-4f88-8857-dcec1d5b1265";
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-// Use env var in production (Render), file path locally
+// --- Dialogflow CX configuration ---
+const projectId = "designpattern-456617";
+const location = "global";
+const agentId = "2f3bf99f-2be1-4f88-8857-dcec1d5b1265";
+
 let client;
 
+// Use env var on Render, local key file on your laptop
 if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
-  // On Render: JSON string in env var
   console.log("Using credentials from GOOGLE_CLOUD_CREDENTIALS env var");
   const creds = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
   client = new SessionsClient({
     credentials: creds,
   });
 } else {
-  // Local dev: key file on disk
-  const keyFilePath = "C:\\Users\\nikit\\designpattern-456617-bef9c3400ad5.json";
+  const keyFilePath =
+    "C:\\Users\\nikit\\designpattern-456617-bef9c3400ad5.json"; // <-- your local key path
   console.log("Using local key file:", keyFilePath);
   client = new SessionsClient({
     keyFilename: keyFilePath,
   });
 }
 
-
+// Chat endpoint
 app.post("/chat", async (req, res) => {
   try {
     const { sessionId, text } = req.body;
@@ -54,18 +57,14 @@ app.post("/chat", async (req, res) => {
 
     const [response] = await client.detectIntent(request);
 
-    const messages =
-      response.queryResult.responseMessages
-        .map((m) => (m.text && m.text.text) || [])
-        .flat()
-        .filter(Boolean);
+    const messages = (response.queryResult.responseMessages || [])
+      .map((m) => (m.text && m.text.text) || [])
+      .flat()
+      .filter(Boolean);
 
     res.json({ replies: messages });
   } catch (err) {
-    // 💥 RETURN THE REAL ERROR IN THE RESPONSE
-    console.error("Dialogflow error message:", err.message);
-    console.error("Dialogflow error details:", err.details || err);
-
+    console.error("Dialogflow error:", err);
     res.status(500).json({
       error: err.message || "Internal error",
       details: err.details || null,
@@ -73,6 +72,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
+// Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
